@@ -2,10 +2,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TravelApi.Models;
 
-namespace TravelApi.Controllers
+namespace TravelApi.Controllers.V1
 {
-  [Route("api/[controller]")]
   [ApiController]
+  [Route("api/v{version:apiVersion}/[controller]")]
+  [ApiVersion("1.0")]
   public class DestinationsController : ControllerBase
   {
     private readonly TravelApiContext _db;
@@ -16,9 +17,26 @@ namespace TravelApi.Controllers
 
     // GET api/destinations
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Destination>>> Get()
+    public async Task<ActionResult<IEnumerable<Destination>>> Get(string city, string country, int rating)
     {
-      return await _db.Destinations.ToListAsync();
+      IQueryable<Destination> query = _db.Destinations.AsQueryable();
+      
+      if (city != null)
+      {
+        query = query.Where(entry => entry.City == city);
+      }
+
+      if (country != null)
+      { 
+        query = query.Where(entry => entry.Country == country);
+      }
+
+      if (rating >0 )
+      {
+        query = query.Where(entry => entry.Rating == rating);
+      }
+
+      return await query.ToListAsync();
     }
 
     // GET: api/Destinations/5
@@ -76,8 +94,21 @@ namespace TravelApi.Controllers
     {
       return _db.Destinations.Any(e => e.DestinationId == id);
     }
+
+    // DELETE: api/Destinations/5
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteDestination(int id)
+    {
+      Destination destination = await _db.Destinations.FindAsync(id);
+      if (destination == null)
+      {
+        return NotFound();
+      }
+
+      _db.Destinations.Remove(destination);
+      await _db.SaveChangesAsync();
+
+      return NoContent();
+    }
   }
-
-  // DELETE: api/Destinations/5
-
 } 
